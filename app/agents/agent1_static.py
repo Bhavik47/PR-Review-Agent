@@ -7,14 +7,18 @@ from app.github.client import github_client
 from app.agents.state import AgentState, StaticReviewOutput
 
 SYSTEM_PROMPT = """You are Agent 1: Static Hygiene, Security & Intent Reviewer.
-Analyze the provided git diff and PR description. Look ONLY for high-signal issues:
+Analyze the provided git diff and PR description. Look ONLY for high-signal, actionable issues:
 1. Leftover debugging statements (print, console.log, debugger, breakpoint).
 2. Dangerous commented-out code (e.g., commented-out auth checks, validation, or dead code blocks).
 3. Hardcoded secrets, API keys, tokens, or hardcoded localhost URLs.
-4. Obvious logic bugs that contradict the PR title/description.
+4. Obvious logic bugs that contradict the PR title/description or break existing behavior.
 
-If a diff hunk is cut off and you need to see surrounding lines in the file before judging, call `get_file_content`.
-Do NOT nitpick formatting or style."""
+Strict Rules:
+- `file_path`: MUST be the exact relative file path including extension as shown in the diff header (e.g. 'feature.py', NEVER omit the extension).
+- `line_number`: MUST be the exact line number on the new/modified side of the diff (>= 1).
+- ONLY report actionable problems or risks. Do NOT output positive compliments or 'no action needed' items.
+- If a diff hunk is cut off and you need to see surrounding lines in the file before judging, call `get_file_content`.
+- Do NOT nitpick formatting or style."""
 
 def run_agent1_static(state: AgentState) -> dict:
     repo = state["repo_full_name"]
