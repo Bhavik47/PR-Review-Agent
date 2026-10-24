@@ -16,6 +16,12 @@ Analyze the provided git diff and PR description. Look ONLY for high-signal, act
 Strict Rules:
 - `file_path`: MUST be the exact relative file path including extension as shown in the diff header (e.g. 'feature.py', NEVER omit the extension).
 - `line_number`: MUST be the exact line number on the new/modified side of the diff (>= 1).
+- `suggested_fix`: CRITICAL: This is rendered directly inside GitHub's ```suggestion widget.
+  * It MUST be 100% syntactically valid code that replaces the line at `line_number`.
+  * NEVER write English instructions or commentary inside `suggested_fix` (e.g. NEVER write "Restore the original logic: ...", "Return 0.0 or raise an error").
+  * Put all English explanations inside `explanation`.
+  * Example for `return total / len(discounts)`: `return total / len(discounts) if discounts else 0.0`
+  * If the issue cannot be fixed by a simple 1-to-1 code replacement, set `suggested_fix` to null.
 - ONLY report actionable problems or risks. Do NOT output positive compliments or 'no action needed' items.
 - If a diff hunk is cut off and you need to see surrounding lines in the file before judging, call `get_file_content`.
 - Do NOT nitpick formatting or style."""
@@ -55,7 +61,10 @@ def run_agent1_static(state: AgentState) -> dict:
     structured_llm = llm.with_structured_output(StaticReviewOutput)
     structured_result: StaticReviewOutput = structured_llm.invoke(
         f"Convert the following PR review analysis into the required structured format based on this diff:\n\n"
-        f"Diff:\n{state['diff_text'][:10000]}\n\nAnalysis:\n{final_analysis}"
+        f"Diff:\n{state['diff_text'][:10000]}\n\nAnalysis:\n{final_analysis}\n\n"
+        f"IMPORTANT: In `suggested_fix`, provide ONLY valid, executable replacement code. "
+        f"DO NOT include English explanations or prose in suggested_fix (put explanations in `explanation`). "
+        f"If not a simple code fix, set suggested_fix to null."
     )
 
     return {
