@@ -97,7 +97,7 @@ def process_pr_review_job(
             )
             return
 
-        # Step 4: Invoke review graph
+        # Step 4: Invoke parallel review graph (Agent 1 + Agent 2 -> Aggregator)
         pr_review_graph.invoke({
             "repo_full_name": repo_full_name,
             "pr_number": pr_number,
@@ -107,6 +107,10 @@ def process_pr_review_job(
             "diff_text": diff_text,
             "static_summary": "",
             "static_findings": [],
+            "sandbox_summary": "",
+            "sandbox_bugs": [],
+            "final_summary": "",
+            "final_findings": [],
         })
 
         # Step 5: Final check before marking as COMPLETED

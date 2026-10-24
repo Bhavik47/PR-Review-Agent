@@ -1,6 +1,21 @@
+import ast
 import httpx
 from typing import List, Dict, Any
 from app.config import settings
+
+def is_valid_code_replacement(snippet: str) -> bool:
+    """Checks if a suggested fix is syntactically valid code that can be applied in a GitHub suggestion block."""
+    if not snippet or not snippet.strip():
+        return False
+    clean = snippet.strip()
+    if clean.startswith("```") and clean.endswith("```"):
+        lines = clean.splitlines()
+        clean = "\n".join(lines[1:-1]).strip()
+    try:
+        ast.parse(clean)
+        return True
+    except SyntaxError:
+        return False
 
 class GitHubClient:
     def __init__(self):
@@ -27,6 +42,16 @@ class GitHubClient:
             resp = client.get(url, headers=headers)
             resp.raise_for_status()
             return resp.text
+
+    def get_file_raw(self, repo_full_name: str, file_path: str, ref: str) -> str:
+        """Fetches the entire raw file content from GitHub at commit `ref`."""
+        url = f"{self.base_url}/repos/{repo_full_name}/contents/{file_path}?ref={ref}"
+        headers = {**self.headers, "Accept": "application/vnd.github.v3.raw"}
+        with httpx.Client(timeout=15.0) as client:
+            resp = client.get(url, headers=headers)
+            if resp.status_code == 200:
+                return resp.text
+            return ""
 
     def get_file_lines(self, repo_full_name: str, file_path: str, ref: str, start_line: int, end_line: int) -> str:
         """Fetches specific line ranges of a file at commit `ref` for Agent 1 context."""
@@ -58,9 +83,17 @@ class GitHubClient:
         for f in findings:
             path = (f.get("file_path") or "").strip()
             line = f.get("line_number", 0)
-            body = f"**[{f['severity']}] {f['category']}**\n\n{f['explanation']}"
-            if f.get("suggested_fix"):
-                body += f"\n\n```suggestion\n{f['suggested_fix']}\n```"
+            fix = f.get("suggested_fix")
+            if fix:
+                fix_clean = fix.strip()
+                if fix_clean.startswith("```") and fix_clean.endswith("```"):
+                    lines = fix_clean.splitlines()
+                    fix_clean = "\n".join(lines[1:-1]).strip()
+
+                if is_valid_code_replacement(fix_clean):
+                    body += f"\n\n```suggestion\n{fix_clean}\n```"
+                else:
+                    body += f"\n\n**Suggested Approach:**\n{fix_clean}"
 
             # Only valid positive line numbers on a real path can be inline comments
             if line > 0 and path:

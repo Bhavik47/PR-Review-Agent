@@ -154,9 +154,9 @@ pr-review-agent/
 
 ### Phase 3: Agent 2 (Docker Sandbox Prover) & Parallel Aggregation
 
-- [ ] Build `sandbox_runner.py` using the Python `docker` SDK (`--network none`, memory/CPU limits, 20s timeout).
-- [ ] Implement **Agent 2** in LangGraph with its 2-retry test self-correction loop.
-- [ ] Connect Agent 1 and Agent 2 in parallel inside `graph.py`, merging into the `Aggregator` node to publish a single unified GitHub review.
+- [x] Build `sandbox_runner.py` using the Python `docker` SDK (`--network none`, memory/CPU limits, 20s timeout).
+- [x] Implement **Agent 2** in LangGraph with its 2-retry test self-correction loop.
+- [x] Connect Agent 1 and Agent 2 in parallel inside `graph.py`, merging into the `Aggregator` node to publish a single unified GitHub review.
 - [ ] **Milestone Test:** Push a PR function with a division-by-zero edge case. Verify Agent 2 proves the crash inside Docker and posts the failing test + stack trace + suggested fix to the PR.
 
 ```php-template
