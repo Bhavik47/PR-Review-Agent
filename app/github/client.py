@@ -19,6 +19,15 @@ class GitHubClient:
             resp.raise_for_status()
             return resp.text
 
+    def get_compare_diff(self, repo_full_name: str, base_sha: str, head_sha: str) -> str:
+        """Fetches the raw git diff between two commit SHAs using GitHub Compare API."""
+        url = f"{self.base_url}/repos/{repo_full_name}/compare/{base_sha}...{head_sha}"
+        headers = {**self.headers, "Accept": "application/vnd.github.v3.diff"}
+        with httpx.Client(timeout=20.0) as client:
+            resp = client.get(url, headers=headers)
+            resp.raise_for_status()
+            return resp.text
+
     def get_file_lines(self, repo_full_name: str, file_path: str, ref: str, start_line: int, end_line: int) -> str:
         """Fetches specific line ranges of a file at commit `ref` for Agent 1 context."""
         url = f"{self.base_url}/repos/{repo_full_name}/contents/{file_path}?ref={ref}"
@@ -43,38 +52,53 @@ class GitHubClient:
     ):
         """Posts a unified Pull Request Review with inline comments."""
         url = f"{self.base_url}/repos/{repo_full_name}/pulls/{pr_number}/reviews"
-        comments = []
+        inline_comments = []
+        general_notes = []
+
         for f in findings:
+            path = (f.get("file_path") or "").strip()
+            line = f.get("line_number", 0)
             body = f"**[{f['severity']}] {f['category']}**\n\n{f['explanation']}"
             if f.get("suggested_fix"):
                 body += f"\n\n```suggestion\n{f['suggested_fix']}\n```"
-            comments.append({
-                "path": f["file_path"],
-                "line": f["line_number"],
-                "side": "RIGHT",
-                "body": body,
-            })
+
+            # Only valid positive line numbers on a real path can be inline comments
+            if line > 0 and path:
+                inline_comments.append({
+                    "path": path,
+                    "line": line,
+                    "side": "RIGHT",
+                    "body": body,
+                })
+            else:
+                general_notes.append(f"- **{path or 'PR General'}**: {body}")
+
+        full_summary = summary
+        if general_notes:
+            full_summary += "\n\n### General Findings:\n" + "\n".join(general_notes)
 
         payload = {
             "commit_id": commit_sha,
-            "body": summary,
+            "body": full_summary,
             "event": "COMMENT",
-            "comments": comments,
+            "comments": inline_comments,
         }
 
         with httpx.Client(timeout=20.0) as client:
             resp = client.post(url, headers=self.headers, json=payload)
-            # Fallback: if an inline line number is outside the diff hunk, post summary comment only
-            if resp.status_code == 422 and comments:
-                fallback_body = summary + "\n\n### Findings:\n" + "\n".join(
-                    [f"- **{c['path']}** (Line {c['line']}): {c['body']}" for c in comments]
+            # Fallback: if GitHub rejects an inline comment line (422), post summary with all findings
+            if resp.status_code == 422 and inline_comments:
+                fallback_body = full_summary + "\n\n### Findings:\n" + "\n".join(
+                    [f"- **{c['path']}** (Line {c['line']}): {c['body']}" for c in inline_comments]
                 )
-                client.post(
+                fallback_resp = client.post(
                     url,
                     headers=self.headers,
                     json={"commit_id": commit_sha, "body": fallback_body, "event": "COMMENT"},
                 )
+                fallback_resp.raise_for_status()
             else:
                 resp.raise_for_status()
+
 
 github_client = GitHubClient()
