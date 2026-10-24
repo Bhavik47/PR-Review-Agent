@@ -4,7 +4,7 @@ from app.agents.agent1_static import run_agent1_static
 from app.github.client import github_client
 
 def publish_review_node(state: AgentState) -> dict:
-    summary = f"### 🤖 Automated PR Review (Phase 1)\n{state['static_summary']}"
+    summary = f"### 🤖 Automated PR Review\n{state['static_summary']}"
     github_client.post_pr_review(
         repo_full_name=state["repo_full_name"],
         pr_number=state["pr_number"],

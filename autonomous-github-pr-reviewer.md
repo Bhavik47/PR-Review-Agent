@@ -139,18 +139,18 @@ pr-review-agent/
 
 ### Phase 1: The "Walking Skeleton" (End-to-End Pipeline + Agent 1)
 
-- [ ] Set up `docker-compose.yml` with FastAPI, Redis, PostgreSQL, and RQ Worker.
-- [ ] Implement `POST /webhooks/github` with HMAC signature verification and Redis deduplication.
-- [ ] Build the GitHub API client to fetch PR diffs and post inline PR review comments.
-- [ ] Build the LangGraph workflow with **Agent 1 (Static Reviewer)** and its `get_file_content` tool.
-- [ ] **Milestone Test:** Open a test PR with a leftover `print()` and a dummy API key; verify the bot posts inline comments on GitHub within 5 seconds.
+- [x] Set up `docker-compose.yml` with FastAPI, Redis, PostgreSQL, and RQ Worker.
+- [x] Implement `POST /webhooks/github` with HMAC signature verification and Redis deduplication.
+- [x] Build the GitHub API client to fetch PR diffs and post inline PR review comments.
+- [x] Build the LangGraph workflow with **Agent 1 (Static Reviewer)** and its `get_file_content` tool.
+- [x] **Milestone Test:** Open a test PR with a leftover `print()` and a dummy API key; verify the bot posts inline comments on GitHub within 5 seconds.
 
 ### Phase 2: Concurrency Control & Incremental Diff Engine
 
-- [ ] Wire up the PostgreSQL `pr_reviews` table to track `last_completed_sha`.
-- [ ] Implement incremental diff calculation (`last_completed_sha ... head_sha` with fallback to `base_sha ... head_sha`).
-- [ ] Add Redis `active_job_id` tracking per PR to cancel in-flight worker jobs when a new commit is pushed rapidly.
-- [ ] **Milestone Test:** Push Commit A, then push Commit B 5 seconds later. Verify Run A is cancelled cleanly and Run B analyzes the combined diff of A + B without duplicate comments.
+- [x] Wire up the PostgreSQL `pr_reviews` table to track `last_completed_sha`.
+- [x] Implement incremental diff calculation (`last_completed_sha ... head_sha` with fallback to `base_sha ... head_sha`).
+- [x] Add Redis `active_job_id` tracking per PR to cancel in-flight worker jobs when a new commit is pushed rapidly.
+- [x] **Milestone Test:** Push Commit A, then push Commit B 5 seconds later. Verify Run A is cancelled cleanly and Run B analyzes the combined diff of A + B without duplicate comments.
 
 ### Phase 3: Agent 2 (Docker Sandbox Prover) & Parallel Aggregation
 

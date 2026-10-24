@@ -4,7 +4,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Header, HTTPException
 from app.config import settings
 from app.db.session import init_db
-from app.queue.redis_conn import pr_queue, is_duplicate_webhook
+from app.queue.redis_conn import (
+    pr_queue,
+    is_duplicate_webhook,
+    cancel_active_job,
+    set_active_job,
+)
 from app.queue.worker import process_pr_review_job
 
 @asynccontextmanager
@@ -53,15 +58,21 @@ async def github_webhook(
 
     pr = payload["pull_request"]
     repo_full_name = payload["repository"]["full_name"]
+    pr_number = pr["number"]
+
+    # Rapid-push cancellation: cancel any pending or running job for this PR
+    cancel_active_job(repo_full_name, pr_number)
 
     job = pr_queue.enqueue(
         process_pr_review_job,
         repo_full_name=repo_full_name,
-        pr_number=pr["number"],
+        pr_number=pr_number,
         base_sha=pr["base"]["sha"],
         head_sha=pr["head"]["sha"],
         pr_title=pr["title"],
         pr_description=pr.get("body") or "",
     )
+
+    set_active_job(repo_full_name, pr_number, job.id)
 
     return {"status": "queued", "job_id": job.id}
