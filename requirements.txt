@@ -11,3 +11,5 @@ langgraph>=1.0.0
 langchain-core>=1.0.0
 langchain-openai>=1.0.0
 docker>=7.1.0
+kubernetes>=29.0.0
+kopf>=1.37.0
