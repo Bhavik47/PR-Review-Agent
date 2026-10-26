@@ -1,0 +1,10 @@
+apiVersion: platform.atlassian.dev/v1alpha1
+kind: PRReviewJob
+metadata:
+  name: sample-pr-review
+  namespace: default
+spec:
+  repo: "Bhavik47/PR-Review-Agent"
+  prNumber: 1
+  enableSandbox: true
+  cellId: "cell-us-east-1a"
