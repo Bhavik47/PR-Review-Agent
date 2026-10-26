@@ -5,12 +5,30 @@ import time
 import logging
 from typing import Dict, Any
 import docker
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
 SANDBOX_IMAGE = "pr-sandbox-runner:latest"
 
 def run_pytest_in_sandbox(
+    files: Dict[str, str],
+    test_filename: str = "test_edge_cases.py",
+    timeout_seconds: int = 20,
+) -> Dict[str, Any]:
+    """
+    Executes pytest inside an ephemeral sandbox. Automatically routes execution
+    to either a Kubernetes Job or a Docker container based on settings.SANDBOX_BACKEND.
+    """
+    if getattr(settings, "SANDBOX_BACKEND", "docker").lower() == "kubernetes":
+        from app.agents.k8s_sandbox_runner import run_pytest_in_k8s_sandbox
+        logger.info("Executing test in Kubernetes-native ephemeral Job sandbox...")
+        return run_pytest_in_k8s_sandbox(files, test_filename, timeout_seconds)
+
+    logger.info("Executing test in Docker container sandbox...")
+    return run_pytest_in_docker_sandbox(files, test_filename, timeout_seconds)
+
+def run_pytest_in_docker_sandbox(
     files: Dict[str, str],
     test_filename: str = "test_edge_cases.py",
     timeout_seconds: int = 20,
