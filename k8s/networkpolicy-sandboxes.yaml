@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sandbox-zero-trust-isolation
+  namespace: sandboxes
+  labels:
+    app.kubernetes.io/part-of: pr-review-agent
+    platform.atlassian.dev/tier: sandboxed-compute
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: pr-sandbox-runner
+  policyTypes:
+    - Ingress
+    - Egress
+  # Empty ingress list -> Deny all inbound traffic to sandbox pods
+  ingress: []
+  # Empty egress list -> Deny all outbound traffic (prevents data exfiltration & metadata access)
+  egress: []
